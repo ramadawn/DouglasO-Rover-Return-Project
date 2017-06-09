@@ -4,8 +4,56 @@ author: "Douglas Oak"
 date: "June 3, 2017"
 output: html_document
 ---
+# Resubmission:
 
-#Notebook analysis:
+For my resubmission I made two modifications to the Perception.py file.
+
+The first modification was to the perception_step method. On line 131 I changed:
+
+```{python, eval=FALSE}
+ if Rover.roll > 0.5 or Rover.pitch > 0.5:
+```
+
+
+TO
+
+```{python, eval=FALSE}
+ if abs(Rover.roll) > 0.5 or abs(Rover.pitch) > 0.5:
+```
+Doing so allows the mapping limiter to catch values that are grossly negative for pitch and roll.
+
+The second modification  I made was to the color_thresh method.
+
+
+```{python, eval=FALSE}
+ def color_thresh(img, thresh_type , rgb_thresh=(160, 160, 160),):
+    # Create an array of zeros same xy size as img, but single channel
+    thresh = np.zeros_like(img[:,:,0])
+    
+    if thresh_type == "navigation":
+        thresh_programmer = (img[:,:,0] > rgb_thresh[0]) \
+                & (img[:,:,1] > rgb_thresh[1]) \
+                & (img[:,:,2] > rgb_thresh[2])
+       
+    
+    elif thresh_type == "features":
+        thresh_programmer = (img[:,:,0] < rgb_thresh[0]) \
+                    & (img[:,:,1] < rgb_thresh[1]) \
+                    & (img[:,:,2] < rgb_thresh[2])
+    
+    else:
+        thresh_programmer =(img[:,:,0] > 184) \
+                & (img[:,:,1] > 164) \
+                & (img[:,:,2] < 73)
+        
+         
+    thresh[thresh_programmer] = 1
+   
+    return thresh
+```
+These changes will hopefully make the method more versitile by making the map type returned, something that is determined by the input instead of just having one output type.
+
+##Notebook analysis:
 
   I started off by writing up my Perspective Transform function. With That fuction properly working, I began working on my color_thresh method. 
   
@@ -70,7 +118,7 @@ My final task was to establish an output folder for the movie creation script an
 
 see submitted file:
 
-## Autonomous Navigation and Mapping
+### Autonomous Navigation and Mapping
 
 My first step in completeing the autonomous Navigation section was to finish filling in the Perception file. This was relatively straight forward and involved alot of cutting and pasting from my Jupyter Notebook section. Some variables needed to be redesignated but for, for the most part, the code was the same.
 
@@ -108,7 +156,7 @@ Scanning:
 
 In order to improve scanning, I reduced the rover's top speed to 1 meter per second and had it limit posting map information to the world map, to when pitch and yaw were 0.5 or less. Typically I ran this simulation at 1024 by 1280 and got about 20 frames per second.
 
-### Results
+#### Results
 
 n general I was able to map 50% of the map with about 70% fidelity. That said, getting those number generally took me about 3 hrs. I tried a number of things to improve fidelity but was unsuccessful. I speculate that shrinking the size of the map sent to the map aspect could possible increase fidelity. There are some obsticles that spelled automatic doom for my rover as the program allowed the rover to drive inside the object; where it would get stuck.
       

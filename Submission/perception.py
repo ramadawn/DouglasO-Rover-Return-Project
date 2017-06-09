@@ -1,34 +1,32 @@
 import numpy as np
 import cv2
-import time
 
 # Identify pixels above the threshold
 # Threshold of RGB > 160 does a nice job of identifying ground pixels only
-def color_thresh(img, rgb_thresh=(160, 160, 160)):
+def color_thresh(img, thresh_type , rgb_thresh=(160, 160, 160),):
     # Create an array of zeros same xy size as img, but single channel
-    nav_select = np.zeros_like(img[:,:,0])
-    terrian_select = np.zeros_like(img[:,:,0])
-    stone_select = np.zeros_like(img[:,:,0])
-    # Require that each pixel be above all three threshold values in RGB
-    # above_thresh will now contain a boolean array with "True"
-    # where threshold, was met
-    above_thresh = (img[:,:,0] > 160) \
-                & (img[:,:,1] > 160) \
-                & (img[:,:,2] > 160)
-    below_thresh = (img[:,:,0] < 160) \
-                & (img[:,:,1] < 160) \
-                & (img[:,:,2] < 160)
+    thresh = np.zeros_like(img[:,:,0])
     
-    stone_thresh =(img[:,:,0] > 184) \
+    if thresh_type == "navigation":
+        thresh_programmer = (img[:,:,0] > rgb_thresh[0]) \
+                & (img[:,:,1] > rgb_thresh[1]) \
+                & (img[:,:,2] > rgb_thresh[2])
+       
+    
+    elif thresh_type == "features":
+        thresh_programmer = (img[:,:,0] < rgb_thresh[0]) \
+                    & (img[:,:,1] < rgb_thresh[1]) \
+                    & (img[:,:,2] < rgb_thresh[2])
+    
+    else:
+        thresh_programmer =(img[:,:,0] > 184) \
                 & (img[:,:,1] > 164) \
                 & (img[:,:,2] < 73)
-    
-    # Index the array of zeros with the boolean array and set to 1
-    nav_select[above_thresh] = 1
-    terrian_select[below_thresh] = 1
-    stone_select[stone_thresh] = 1
-    # Return the binary imerrt
-    return nav_select, terrian_select, stone_select
+        
+         
+    thresh[thresh_programmer] = 1
+   
+    return thresh
     
 
 # Define a function to convert to rover-centric coordinates
@@ -108,7 +106,9 @@ def perception_step(Rover):
     
     warped = perspect_transform(img, source, dest)
     # 3) Apply color threshold to identify navigable terrain/obstacles/rock samples
-    navigable, obstacle, rock_sample = color_thresh(warped)
+    navigable = color_thresh(warped, "navigation")
+    obstacle = color_thresh(warped, "features" ) 
+    rock_sample = color_thresh(warped, "stone")
     # 4) Update Rover.vision_image (this will be displayed on left side of screen)
     Rover.vision_image[:,:,0] = obstacle 
     Rover.vision_image[:,:,1] = rock_sample 
@@ -128,7 +128,7 @@ def perception_step(Rover):
     obstacle_x_world, obstacle_y_world = pix_to_world(terrian_tran_x, terrian_tran_y, xpos, ypos, yaw, world_size, scale)
     rock_y_world, rock_x_world = pix_to_world(stone_tran_x, stone_tran_y, xpos, ypos, yaw, world_size, scale)
     # 7) Update Rover worldmap (to be displayed on right side of screen)
-    if Rover.roll > 0.5 or Rover.pitch > 0.5:
+    if abs(Rover.roll) > 0.5 or abs(Rover.pitch) > 0.5:
         Rover.nomapmake +=1
     else: # Rover.roll < 0.5 or Rover.pitch < 0.5:
         Rover.mapmake += 1
